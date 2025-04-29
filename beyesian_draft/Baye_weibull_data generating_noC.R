@@ -27,13 +27,17 @@ eta_u <- -0.8
 sigma <- 0.5 
 mu0 <- eta_intercept + eta_x1 * X1 + eta_x2 * X2 + eta_u * U # Linear predictor 
 mu1 <- eta_intercept_a1 + eta_x1 * X1 + eta_x2 * X2 + eta_u * U
-#transformation: log(T)=mu+sigma*error
-# epsilon_star <- log(epsilon) ε*~ Gumbel(0,1),-log(-log(runif(n)))
-u <- runif(n)          # Uniform(0,1)
-gumbel_errors <- log(-log(u))  #Transform
-# Generate survival time from Weibull AFT model
-D_a0 <- exp(mu0+sigma*gumbel_errors)
-D_a1 <- exp(mu1+sigma*gumbel_errors)
+# #transformation: log(T)=mu+sigma*ε, ε~ Gumbel(0,1)
+# u <- runif(n)          # Uniform(0,1)
+# gumbel_errors <- -log(-log(u))  #Transform, -log(-log(runif(n)))
+
+# Rate-form λ = exp(-mu / sigma)
+lambda0 <- exp(-mu0 / sigma)
+lambda1 <- exp(-mu1 / sigma)
+
+# Simulate survival times from Weibull(rate = lambda, shape = v)
+D_a0 <- rweibull(n, shape = 1/sigma, scale = 1 / lambda0)
+D_a1 <- rweibull(n, shape = 1/sigma, scale = 1 / lambda1)  # Note: scale = 1 / rate
 
 # Observed time M=min(C,D,tau)
 M <- ifelse(A == 1, D_a1, D_a0)
