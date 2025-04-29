@@ -1,3 +1,4 @@
+#0.2863551 true spce
 options(scipen = 999)
 library(coda)
 library(rjags)
@@ -14,11 +15,11 @@ model {
     
     #  Likelihood for U (latent confounder), P(U|X), if U is dependent of X1 and X2
     U[i] ~ dbern(pU[i])
-    logit(pU[i])<- alpha0 + alpha.X1 * X1[i]+ alpha.X2 * X2[i]
+    logit(pU[i]) = alpha0 + alpha.X1 * X1[i]+ alpha.X2 * X2[i]
     
     # Treatment A, P(A|X,U)
     A[i] ~ dbern(pA[i])
-    logit(pA[i]) <- gamma0 + gamma.X1 * X1[i] + gamma.X2 * X2[i]+ gamma.U * U[i]
+    logit(pA[i]) = gamma0 + gamma.X1 * X1[i] + gamma.X2 * X2[i]+ gamma.U * U[i]
     
     # Likelihood for survival outcome T (AFT model), P(T|A,X,U)
     
@@ -26,29 +27,67 @@ model {
     #lambda is the rate parameter, not scale, so in dweib() of JAGS, lamda = exp(-mu[i]/sigma)
     # T~weibull(shape=1/sigma, rate= exp(-mu[i]/sigma))
     #T[i] ~ dweib(shape, lambda[i])   Weibull survival time, dweib(shape, rate)
-    #lambda[i] <- exp(-mu[i]/sigma)
     
-    
-    #Weibull logT~N(mu, tau)
-    logT[i] ~ dnorm(mu[i], tau) 
-    mu[i] <- beta0 + beta.A * A[i] + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * U[i]
-    
+    #Weibull T~weibull(shape=1/sigma, lambda(rate)= exp(-mu[i]/sigma))
+    T[i] ~ dweib(shape, lambda[i])
+    lambda[i] = exp(-mu[i] / sigma)
+    mu[i] = beta0 + beta.A * A[i] + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * U[i]
+  }
+
+for (i in 1:N) {
     # spce;
     # U is independent of A
     # predicted potential mu under A=1 and A=0
-    pUpo[i] <- ilogit(alpha0 + alpha.X1 * X1[i]+ alpha.X2 * X2[i])
-    mu1po[i] <- beta0 + beta.A * 1 + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * pUpo[i]
-    mu0po[i] <- beta0 + beta.A * 0 + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * pUpo[i]
-    S1[i] <- 1 - phi((log(t_pred) - mu1po[i])/sigma)
-    S0[i] <- 1 - phi((log(t_pred) - mu0po[i])/sigma)
+    # Posterior predictive SPCE
+    pUpo[i] = ilogit(alpha0 + alpha.X1 * X1[i]+ alpha.X2 * X2[i])
+    U.po[i] ~ dbern(pUpo[i])
     
+    #should sample U
+    mu1po[i] <- beta0 + beta.A * 1 + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * U.po[i]
+    mu0po[i] <- beta0 + beta.A * 0 + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * U.po[i]
+    
+    #Expected value  E[U[i]]=pU[i], wrong?
+    # mu1[i] = beta0 + beta.A*1 + beta.X1*X1[i] + beta.X2*X2[i] + beta.U*pU[i]
+    # mu0[i] = beta0 + beta.A*0 + beta.X1*X1[i] + beta.X2*X2[i] + beta.U*pU[i]
+
+
+    lambda1po[i] = exp(-mu1po[i]/sigma)
+    lambda0po[i] = exp(-mu0po[i]/sigma)
+    
+    S1[i] = exp(-(lambda1po[i]*t_pred)^shape)
+    S0[i] = exp(-(lambda0po[i]*t_pred)^shape)
+    
+    #log-normal aft, not weibull aft
+    # S1[i] <- 1 - phi((log(t_pred) - mu1po[i])/sigma)
+    # S0[i] <- 1 - phi((log(t_pred) - mu0po[i])/sigma)
+    
+    
+     
+    # True SPCE (marginalize over U=0 and U=1)
+    mu1_u1[i] = beta0 + beta.A * 1 + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * 1
+    mu1_u0[i] = beta0 + beta.A * 1 + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * 0
+    mu0_u1[i] = beta0 + beta.A * 0 + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * 1
+    mu0_u0[i] = beta0 + beta.A * 0 + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * 0
+
+    lambda1_u1[i] = exp(-mu1_u1[i] / sigma)
+    lambda1_u0[i] = exp(-mu1_u0[i] / sigma)
+    lambda0_u1[i] = exp(-mu0_u1[i] / sigma)
+    lambda0_u0[i] = exp(-mu0_u0[i] / sigma)
+
+    S1_true[i] = pUpo[i] * exp(-pow(lambda1_u1[i] * t_pred, shape)) +
+                 (1 - pUpo[i]) * exp(-pow(lambda1_u0[i] * t_pred, shape))
+
+    S0_true[i] = pUpo[i] * exp(-pow(lambda0_u1[i] * t_pred, shape)) +
+                 (1 - pUpo[i]) * exp(-pow(lambda0_u0[i] * t_pred, shape))
   }
+
   
-  spce <- mean(S1[])-mean(S0[])
+  spce = mean(S1[])-mean(S0[])
+  spce_true = mean(S1_true[]) - mean(S0_true[])
   
   # Priors for parameters
   sigma ~ dunif(0.01, 10)
-  tau <- 1/sigma/sigma
+  shape = 1/sigma
   
   gamma0 ~ dnorm(0, 0.01)
   gamma.X1 ~ dnorm(0, 0.01)
@@ -72,7 +111,7 @@ model {
 
 jags_data <- list(
   N = nrow(data_sim),
-  logT = log(data_sim$M),
+  T = data_sim$M,
   X1 = data_sim$x1,
   X2 = data_sim$x2,
   A = data_sim$A,
@@ -82,13 +121,13 @@ jags_data <- list(
 
 
 # Model
-model <- jags.model("weibull_JAGS.txt", data = jags_data, n.chains = 3, n.adapt = 5000)
+model <- jags.model("weibull_JAGS.txt", data = jags_data, n.chains = 3, n.adapt = 1000)
 
 update(model, 1000) # Burn-in
 
 samples <- coda.samples(
-  model, variable.names = c("beta0","beta.A", "beta.X1","beta.X2","beta.U", "sigma","spce"), 
-  n.iter = 20000, thin = 10)
+  model, variable.names = c("beta0", "beta.A", "beta.X1", "beta.X2", "beta.U","spce","sigma","spce_true"), 
+  n.iter = 10000, thin = 10)
 
 
 summary(samples)
