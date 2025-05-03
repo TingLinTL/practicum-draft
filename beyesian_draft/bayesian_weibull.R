@@ -40,52 +40,40 @@ for (i in 1:N) {
     # predicted potential mu under A=1 and A=0
     # Posterior predictive SPCE
     pUpo[i] = ilogit(alpha0 + alpha.X1 * X1[i]+ alpha.X2 * X2[i])
-    U.po[i] ~ dbern(pUpo[i])
     
-    #should sample U
-    mu1po[i] <- beta0 + beta.A * 1 + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * U.po[i]
-    mu0po[i] <- beta0 + beta.A * 0 + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * U.po[i]
-    
-    #Expected value  E[U[i]]=pU[i], wrong?
-    # mu1[i] = beta0 + beta.A*1 + beta.X1*X1[i] + beta.X2*X2[i] + beta.U*pU[i]
-    # mu0[i] = beta0 + beta.A*0 + beta.X1*X1[i] + beta.X2*X2[i] + beta.U*pU[i]
+    # mu and lambda when U = 1
+    mu1_U1[i] = beta0 + beta.A*1 + beta.X1*X1[i] + beta.X2*X2[i] + beta.U*1
+    lambda1_U1[i] = exp(-mu1_U1[i]/sigma)
+    S1_U1[i] = exp(-pow(lambda1_U1[i]*t_pred, shape))
 
+    mu0_U1[i] = beta0 + beta.A*0 + beta.X1*X1[i] + beta.X2*X2[i] + beta.U*1
+    lambda0_U1[i] = exp(-mu0_U1[i]/sigma)
+    S0_U1[i] = exp(-pow(lambda0_U1[i]*t_pred, shape))
 
-    lambda1po[i] = exp(-mu1po[i]/sigma)
-    lambda0po[i] = exp(-mu0po[i]/sigma)
-    
-    S1[i] = exp(-(lambda1po[i]*t_pred)^shape)
-    S0[i] = exp(-(lambda0po[i]*t_pred)^shape)
+    # mu and lambda when U = 0
+    mu1_U0[i] = beta0 + beta.A*1 + beta.X1*X1[i] + beta.X2*X2[i] + beta.U*0
+    lambda1_U0[i] = exp(-mu1_U0[i]/sigma)
+    S1_U0[i] = exp(-pow(lambda1_U0[i]*t_pred, shape))
+
+    mu0_U0[i] = beta0 + beta.A*0 + beta.X1*X1[i] + beta.X2*X2[i] + beta.U*0
+    lambda0_U0[i] = exp(-mu0_U0[i]/sigma)
+    S0_U0[i] = exp(-pow(lambda0_U0[i]*t_pred, shape))
+
+    # Marginalize over U
+    S1[i] = pUpo[i] * S1_U1[i] + (1 - pUpo[i]) * S1_U0[i]
+    S0[i] = pUpo[i] * S0_U1[i] + (1 - pUpo[i]) * S0_U0[i]
     
     #log-normal aft, not weibull aft
     # S1[i] <- 1 - phi((log(t_pred) - mu1po[i])/sigma)
     # S0[i] <- 1 - phi((log(t_pred) - mu0po[i])/sigma)
     
-    
-     
-    # True SPCE (marginalize over U=0 and U=1)
-    mu1_u1[i] = beta0 + beta.A * 1 + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * 1
-    mu1_u0[i] = beta0 + beta.A * 1 + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * 0
-    mu0_u1[i] = beta0 + beta.A * 0 + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * 1
-    mu0_u0[i] = beta0 + beta.A * 0 + beta.X1 * X1[i] + beta.X2 * X2[i] + beta.U * 0
-
-    lambda1_u1[i] = exp(-mu1_u1[i] / sigma)
-    lambda1_u0[i] = exp(-mu1_u0[i] / sigma)
-    lambda0_u1[i] = exp(-mu0_u1[i] / sigma)
-    lambda0_u0[i] = exp(-mu0_u0[i] / sigma)
-
-    S1_true[i] = pUpo[i] * exp(-pow(lambda1_u1[i] * t_pred, shape)) +
-                 (1 - pUpo[i]) * exp(-pow(lambda1_u0[i] * t_pred, shape))
-
-    S0_true[i] = pUpo[i] * exp(-pow(lambda0_u1[i] * t_pred, shape)) +
-                 (1 - pUpo[i]) * exp(-pow(lambda0_u0[i] * t_pred, shape))
   }
 
   
   spce = mean(S1[])-mean(S0[])
-  spce_true = mean(S1_true[]) - mean(S0_true[])
   
   # Priors for parameters
+  
   sigma ~ dunif(0.01, 10)
   shape = 1/sigma
   
@@ -126,7 +114,7 @@ model <- jags.model("weibull_JAGS.txt", data = jags_data, n.chains = 3, n.adapt 
 update(model, 1000) # Burn-in
 
 samples <- coda.samples(
-  model, variable.names = c("beta0", "beta.A", "beta.X1", "beta.X2", "beta.U","spce","sigma","spce_true"), 
+  model, variable.names = c("beta0", "beta.A", "beta.X1", "beta.X2", "beta.U","spce","sigma"), 
   n.iter = 10000, thin = 10)
 
 

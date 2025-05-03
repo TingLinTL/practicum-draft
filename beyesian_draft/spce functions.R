@@ -13,11 +13,16 @@ compute_spce_withU <- function(data) {
   sigma0 <-  model0$scale
   scale1 <- exp(mu1)
   scale0 <- exp(mu0)
-  shape1 <- 1 / sigma1
-  shape0 <- 1 / sigma0
+  # shape1 <- 1 / sigma1
+  # shape0 <- 1 / sigma0
+  lambda1<-exp(-mu1/sigma1)
+  lambda0<-exp(-mu0/sigma0)
   
-  S1 <- exp( - (t_pred / scale1)^shape1 )
-  S0 <- exp( - (t_pred / scale0)^shape0 )
+  S1<-exp(-(lambda1 * t_pred)^(1/sigma1))
+  S0<-exp(-(lambda0 * t_pred)^(1/sigma0))
+  
+  # S1 <- exp( - (t_pred / scale1)^shape1 )
+  # S0 <- exp( - (t_pred / scale0)^shape0 )
   
   
   return(mean(S1) - mean(S0)) # Estimate SPCE
@@ -36,11 +41,11 @@ compute_spce_withoutU <- function(data) {
   sigma0 <-  model0$scale
   scale1 <- exp(mu1)
   scale0 <- exp(mu0)
-  shape1 <- 1 / sigma1
-  shape0 <- 1 / sigma0
+  lambda1<-exp(-mu1/sigma1)
+  lambda0<-exp(-mu0/sigma0)
   
-  S1 <- exp( - (t_pred / scale1)^shape1 )
-  S0 <- exp( - (t_pred / scale0)^shape0 )
+  S1<-exp(-(lambda1 * t_pred)^(1/sigma1))
+  S0<-exp(-(lambda0 * t_pred)^(1/sigma0))
   
   return(mean(S1) - mean(S0)) # Estimate SPCE
 }
