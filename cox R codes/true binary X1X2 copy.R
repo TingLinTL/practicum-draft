@@ -10,7 +10,7 @@ eta_u <- -0.8
 
 #
 v = 2
-lambda = 0.1 # lambda = (lambda*^v) = 0.1
+lambda = 0.1 # base rate = 0.1, rate_i = lambda* lp
 
 #True SPCE
 
@@ -19,8 +19,7 @@ p_x1 <- function(x1) ifelse(x1 == 1, 0.4, 0.6) #X1~Bern(0.4)
 p_x2 <- function(x2) ifelse(x2 == 1, 0.6, 0.4) #X1~Bern(0.6)
 p_u <- function(u) 0.5  # U ~ Bern(0.5)
 
-# Survival functions #Weibull/cox model S(t)= exp(-(lambda* * t)^v *exp(lp))
-#Let lambda*^v = lambda, then S(t)= exp(-lambda * (t^v) *exp(lp))
+# Survival functions Weibull/cox model S(t)= exp (- lambda * exp(lp) * t^v)
 #lp for A=1, eta_intercept_a1 + eta_x1 * x1 + eta_x2 * x2 + eta_u * u
 #lp for A=0, eta_intercept + eta_x1 * x1 + eta_x2 * x2 + eta_u * u
 S <- function(t, x1, x2, u, treat) {

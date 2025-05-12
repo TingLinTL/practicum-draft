@@ -54,24 +54,28 @@ for (i in 1:n_sim) {
   
   #Potential outcomes
   #event
-  eta_intercept <- 0.7
+  eta_intercept <- 0.7 #A=0
   eta_intercept_a1<- 0.2 #A=1
   eta_x1 <- -0.1
   eta_x2 <- 0.4
   eta_u <- -0.8
   
   #C_a0, C_a1 potential censored time
-  C_a0 <- C_a1 <- runif(n, 0.1, 5.5)
+  C_a0 <- C_a1 <- runif(n, 0.1, 5.5) #non-informative censoring
   
   #D_a0, D_a1 are genrated from weibull aft model
   #D_a0,D_a1 potential event time
-  random_simu <- runif(n)
+  #inverse transformation method
+  #CDF for weibull aft is: F(t)=1-exp(-lamda * t^sigma) -> T =  ((-log(-(1-F)))/lambda)^(1/sigma)
+  random_simu <- runif(n) #1-F(t) ~ Unif(0,1)
   v = 2 #weibull with shape = v
-  lambda = 0.1 #with scale =  lambda^-1 *exp(-lp), lambda = (lambda*^v) = 0.1
+  lambda = 0.1 #base line rate, T~Weibull(v, rate) with rate for each individual is lambda*e^(X*beta)
+  #T_i = (-log(U)/ lambda_i)^(1/v), lambda_i = lambda * e^(X*beta)
   #survival time D=(-log(random_simu) / (lambda * exp(eta_intercept + eta_x1 * X1 + eta_x2 * X2 + eta_u * U))) ^ (1 / v)
   D_a0 = round((-log(random_simu) / (lambda * exp(eta_intercept + eta_x1 * X1 + eta_x2 * X2 + eta_u * U))) ^ (1 / v))
   D_a1 = round((-log(random_simu) / (lambda * exp(eta_intercept_a1 + eta_x1 * X1 + eta_x2 * X2 + eta_u * U))) ^ (1 / v))
   
+  # datatry <- data.frame(D_a0 = D_a0, D_a1=D_a1, C_a0 =C_a0, C_a1 = C_a1, A=A)
   # Observed time M=min(C,D,tau)
   M <- ifelse(A == 1, pmin(tau, C_a1, D_a1), pmin(tau, C_a0, D_a0))
   
@@ -92,7 +96,16 @@ for (i in 1:n_sim) {
     x2 = X2,
     U = U
   )
-  
+  #compare
+  # data_sim_com <- data.frame(
+  #   D_a0 = D_a0, D_a1=D_a1, C_a0 =C_a0, C_a1 = C_a1,
+  #   M = M,
+  #   status = ifelse(delta == 1, 1, 0),
+  #   A = A,
+  #   x1 = X1,
+  #   x2 = X2,
+  #   U = U
+  # )
   #Point estimate
   
    spce_withU[i] <- compute_spce_withU(data_sim)
