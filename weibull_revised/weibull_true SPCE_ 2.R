@@ -1,12 +1,12 @@
 #Numeric Iteration for computing the true causal effect, SPCE, survival probability causal effect
 #pre-specify the true values of parameters from data generating process
-#Note from the data generating process, the weibull aft model with the lambda = 0.1 and sigma = 1/v
 eta_intercept <- 0.2#intercept for A=0
 eta_intercept_a1<- 0.7#intercept for A=1
 eta_x1 <- -0.1
 eta_x2 <- 0.4
 eta_u <- -0.8
-sigma <- 0.5
+sigma1 <- 0.5
+sigma0 <- 0.5
 
 #true SPCE at time=2
 t_val <- 2
@@ -21,15 +21,17 @@ library(cubature)
 # Survival function for weibull aft model A = 1 
 weibull_aft_survival_treat1 <- function(t, x1, x2, u){
   lp <- eta_intercept_a1 + eta_x1 * x1 + eta_x2 * x2 + eta_u * u
-  z<- (log(t)-lp)/sigma
-  S_t <- exp(-exp(z))
+  # z<- (log(t)-lp)/sigma
+  # S_t <- exp(-exp(z))
+  S_t <- exp(-(exp(-lp) * t)^(1/sigma1))
   return(S_t)
 }
 # Survival function for weibull aft model A = 0
 weibull_aft_survival_treat0 <- function(t, x1, x2, u){
   lp <- eta_intercept + eta_x1 * x1 + eta_x2 * x2 + eta_u * u
-  z<- (log(t)-lp)/sigma
-  S_t <- exp(-exp(z))
+  # z<- (log(t)-lp)/sigma
+  # S_t <- exp(-exp(z))
+  S_t <- exp(-(exp(-lp) * t)^(1/sigma0))
   return(S_t)
 }
 
