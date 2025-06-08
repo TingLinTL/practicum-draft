@@ -63,7 +63,7 @@ for (i in 1:n_sim) {
   #C_a0, C_a1 potential censored time
   C_a0 <- C_a1 <- runif(n, 0.1, 5.5) #non-informative censoring
   
-  #D_a0, D_a1 are genrated from weibull aft model
+  #D_a0, D_a1 are generated from weibull aft model
   #D_a0,D_a1 potential event time
   #inverse transformation method
   #CDF for weibull aft is: F(t)=1-exp(-lamda * t^sigma) -> T =  ((-log(-(1-F)))/lambda)^(1/sigma)
