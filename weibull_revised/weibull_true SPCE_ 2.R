@@ -12,11 +12,11 @@ sigma0 <- 0.5
 t_val <- 2
 
 #True SPCE
-library(cubature)
+#library(cubature)
 #log(T)=mu + sigma * error, error~Gumble (0,1), mu=linear prediction
-#T~weibull(v=1/sigma, lamda=exp(-lp/sigma)) 
-#CDF F(t) = 1 -exp(-(lambda*t)^v)
-#survival probability = 1-F(t) = exp(-(lambda*t)^v) = exp(-(exp(-lp/sigma))^(1/sigma)) = exp(-exp((log(t)-mu)/sigma))
+#t_i* ~ weibull (alpha=1/sigma, lambda = e^-{X*beta}), lamda is called scale
+#CDF F(t) = 1 -exp(-(lambda*t)^alpha)
+#survival probability = 1-F(t) = exp(-(lambda*t)^alpha) = exp(-(exp(-X*beta)*t)^(1/sigma)) 
 
 # Survival function for weibull aft model A = 1 
 weibull_aft_survival_treat1 <- function(t, x1, x2, u){
