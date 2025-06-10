@@ -44,8 +44,8 @@ surv_stoEM_ipw <- function(data, zetat, zetaz, B = 100, theta = 0.5){
     
     
     # Calculate partial R-sq of (t, d) ~ u | x, z
-    t1.fit = coxph(Surv(t, d) ~ X + Z + offset(zetat * Usim$U))
-    t1.fit_reduced = coxph(Surv(t, d) ~ X + Z)
+    t1.fit = survreg(Surv(t, d) ~ X + Z + offset(zetat * Usim$U), dist = "weibull")
+    t1.fit_reduced = survreg(Surv(t, d) ~ X + Z, dist = "weibull")
     logtest <- -2 * (t1.fit_reduced$loglik[2] - t1.fit$loglik[2])
     if (zetat >= 0)
       partialR2t1[j] = (1 - exp(-logtest/t1.fit$nevent))
